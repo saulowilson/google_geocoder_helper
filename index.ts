@@ -13,6 +13,9 @@ import {GOOGLE_CLOUD_MAPS_KEY} from '../consts';
 import {store} from '../../store';
 import {changeHomeFormFields} from '../../actions/home';
 
+
+const baseUrl = 'https://maps.googleapis.com/maps/api/geocode/json';
+
 export const checkLocationPermission = async () => {
   try {
     const permissionByPlatform = Platform.select({
@@ -57,7 +60,7 @@ export const getCurrentLocation = async (): Promise<Region | any> => {
 export const getCoordinatesByAddress = async (
   address: string,
 ): Promise<Region | any> => {
-  const baseUrl = 'https://maps.googleapis.com/maps/api/geocode/json';
+  
   return new Promise<Region | {}>((resolve, reject) => {
     Axios({
       url: baseUrl,
@@ -103,7 +106,6 @@ export const getCoordinatesByAddress = async (
 };
 
 export const getAddressByCoordinates = (latlng: LatLng) => {
-  const baseUrl = 'https://maps.googleapis.com/maps/api/geocode/json';
   return new Promise((resolve, reject) => {
     Axios({
       url: baseUrl,
