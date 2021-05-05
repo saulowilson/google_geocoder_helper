@@ -1,6 +1,6 @@
-import {Alert, Platform} from 'react-native';
-import {LatLng, Region} from 'react-native-maps';
-import {PERMISSIONS, request} from 'react-native-permissions';
+import { Alert, Platform } from 'react-native';
+import { LatLng, Region } from 'react-native-maps';
+import { PERMISSIONS, request } from 'react-native-permissions';
 import Geolocation from '@react-native-community/geolocation';
 import Axios from 'axios';
 import {
@@ -9,9 +9,9 @@ import {
   AddressComponent,
   Location,
 } from './GoogleGeocodeType';
-import {GOOGLE_CLOUD_MAPS_KEY} from '../consts';
-import {store} from '../../store';
-import {changeHomeFormFields} from '../../actions/home';
+import { GOOGLE_CLOUD_MAPS_KEY } from '../consts';
+import { store } from '../../store';
+import { changeHomeFormFields } from '../../actions/home';
 
 
 const baseUrl = 'https://maps.googleapis.com/maps/api/geocode/json';
@@ -24,10 +24,10 @@ export const checkLocationPermission = async () => {
     });
     const permission_result = await request(permissionByPlatform!);
     store.dispatch(
-      changeHomeFormFields({location_permission: permission_result}),
+      changeHomeFormFields({ location_permission: permission_result }),
     );
     return permission_result;
-  } catch (err) {}
+  } catch (err) { }
 };
 
 export const getCurrentLocation = async (): Promise<Region | any> => {
@@ -35,7 +35,7 @@ export const getCurrentLocation = async (): Promise<Region | any> => {
   if (permission == 'granted') {
     return await new Promise((resolve, reject) => {
       Geolocation.getCurrentPosition(
-        ({coords: {latitude, longitude}}) => {
+        ({ coords: { latitude, longitude } }) => {
           resolve({
             latitude,
             longitude,
@@ -45,10 +45,10 @@ export const getCurrentLocation = async (): Promise<Region | any> => {
           return;
         },
         (error) => {
-          reject({error, msg: 'Erro ao recuperar a localização'});
+          reject({ error, msg: 'Erro ao recuperar a localização' });
           return;
         },
-        {enableHighAccuracy: true, timeout: 15},
+        { enableHighAccuracy: true, timeout: 15 },
       );
     });
   } else {
@@ -60,103 +60,105 @@ export const getCurrentLocation = async (): Promise<Region | any> => {
 export const getCoordinatesByAddress = async (
   address: string,
 ): Promise<Region | any> => {
-  
-  return new Promise<Region | {}>((resolve, reject) => {
-    Axios({
+
+  try {
+    const response = await Axios({
       url: baseUrl,
       params: {
         address: address,
         key: GOOGLE_CLOUD_MAPS_KEY,
       },
-    }).then(
-      (response) => {
-        const geocodeResponse: IGeocoderResponse = response.data;
+    })
 
-        if (geocodeResponse.status == 'OK') {
-          for (let i = 0; i < geocodeResponse.results.length; i++) {
-            const el: IGeocoderResponseProps = geocodeResponse.results[i];
+    const geocodeResponse: IGeocoderResponse = response.data;
 
-            const route = el.address_components?.filter(
-              (el: AddressComponent) => el.types.includes('route'),
-            )[0]!;
-            const number = el.address_components?.filter((el) =>
-              el.types.includes('street_number'),
-            )[0]!;
-            const {lat, lng}: Location = el.geometry?.location!;
-            const region: Region = {
-              latitude: lat,
-              latitudeDelta: 0.002,
-              longitude: lng,
-              longitudeDelta: 0.002,
-            };
+    if (geocodeResponse.status == 'OK') {
+      for (let i = 0; i < geocodeResponse.results.length; i++) {
+        const el: IGeocoderResponseProps = geocodeResponse.results[i];
 
-            resolve({success: true, route, number, region});
-          }
-        } else {
-          reject({
-            success: false,
-            msg: 'Não foi possível obter os dados.',
-            code: geocodeResponse.status,
-          });
-        }
-      },
-      (error) => reject(error),
-    );
-  });
+        const route = el.address_components?.filter(
+          (el: AddressComponent) => el.types.includes('route'),
+        )[0]!;
+        const number = el.address_components?.filter((el) =>
+          el.types.includes('street_number'),
+        )[0]!;
+        const { lat, lng }: Location = el.geometry?.location!;
+        const region: Region = {
+          latitude: lat,
+          latitudeDelta: 0.002,
+          longitude: lng,
+          longitudeDelta: 0.002,
+        };
+
+        return { success: true, route, number, region }
+      }
+    } else {
+      return {
+        success: false,
+        msg: 'Não foi possível obter os dados.',
+        code: geocodeResponse.status,
+      }
+    }
+
+  } catch (error) {
+    return new Error(error)
+  }
+
 };
 
-export const getAddressByCoordinates = (latlng: LatLng) => {
-  return new Promise((resolve, reject) => {
-    Axios({
+export const getAddressByCoordinates = async (latlng: LatLng) => {
+
+  try {
+    const response = await Axios({
       url: baseUrl,
       params: {
         latlng: `${latlng.latitude},${latlng.longitude}`,
         key: GOOGLE_CLOUD_MAPS_KEY,
       },
-    }).then(
-      (response) => {
-        const geocodeResponse: IGeocoderResponse = response.data;
-        if (geocodeResponse.status == 'OK') {
-          for (let i = 0; i < geocodeResponse.results.length; i++) {
-            const el: IGeocoderResponseProps = geocodeResponse.results[i];
+    })
 
-            const route =
-              el.address_components?.filter((el: AddressComponent) =>
-                el.types.includes('route'),
-              )[0]! || '';
-            const number =
-              el.address_components?.filter((el) =>
-                el.types.includes('street_number'),
-              )[0]! || '';
-            const city =
-              el.address_components?.filter((el) =>
-                el.types.includes('administrative_area_level_2'),
-              )[0]! || '';
-            const postal_code =
-              el.address_components?.filter((el) =>
-                el.types.includes('postal_code'),
-              )[0]! || '';
+    const geocodeResponse: IGeocoderResponse = response.data;
+    if (geocodeResponse.status == 'OK') {
+      for (let i = 0; i < geocodeResponse.results.length; i++) {
+        const el: IGeocoderResponseProps = geocodeResponse.results[i];
 
-            resolve({
-              success: true,
-              rua: route.long_name,
-              numero: number.long_name,
-              cidade: city.long_name,
-              cep: postal_code.long_name,
-            });
-          }
-        } else {
-          reject({
-            success: false,
-            msg: 'Não foi possível obter os dados.',
-            code: geocodeResponse.status,
-          });
+        const route =
+          el.address_components?.filter((el: AddressComponent) =>
+            el.types.includes('route'),
+          )[0]! || '';
+        const number =
+          el.address_components?.filter((el) =>
+            el.types.includes('street_number'),
+          )[0]! || '';
+        const city =
+          el.address_components?.filter((el) =>
+            el.types.includes('administrative_area_level_2'),
+          )[0]! || '';
+        const postal_code =
+          el.address_components?.filter((el) =>
+            el.types.includes('postal_code'),
+          )[0]! || '';
+
+        return {
+          success: true,
+          rua: route.long_name,
+          numero: number.long_name,
+          cidade: city.long_name,
+          cep: postal_code.long_name,
         }
-      },
-      (error) => reject(error),
-    );
-  });
-};
+      }
+    } else {
+      return {
+        success: false,
+        msg: 'Não foi possível obter os dados.',
+        code: geocodeResponse.status,
+      }
+    }
+  } catch (error) {
+    return new Error(error)
+  }
+
+}
 
 export const calDelta = (
   lat: number,
